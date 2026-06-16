@@ -1,0 +1,15 @@
+# Secrets
+.env
+*.env
+
+# Node (caso use ferramentas de build futuramente)
+node_modules/
+dist/
+.cache/
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/
