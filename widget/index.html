@@ -5,6 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chat — Tutor</title>
   <link rel="stylesheet" href="../public/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    .msg-assistente p  { margin: 0 0 8px; }
+    .msg-assistente p:last-child { margin-bottom: 0; }
+    .msg-assistente ul, .msg-assistente ol { padding-left: 18px; margin: 6px 0; }
+    .msg-assistente li { margin-bottom: 4px; }
+    .msg-assistente code {
+      background: rgba(0,212,255,.1);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+    }
+    .msg-assistente pre {
+      background: #020810;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .msg-assistente pre code {
+      background: none;
+      padding: 0;
+      font-size: 12px;
+    }
+    .msg-assistente strong { color: var(--neon); }
+  </style>
 </head>
 <body>
 <div class="chat-container">
@@ -39,9 +70,22 @@
   const headerEl    = document.getElementById('chat-header');
 
   function adicionarMensagem(texto, tipo) {
-    const el = document.createElement('p');
+    const el = document.createElement('div');
     el.className = `msg msg-${tipo}`;
-    el.textContent = texto;
+    if (tipo === 'assistente') {
+      el.innerHTML = marked.parse(texto);
+      renderMathInElement(el, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false },
+          { left: '\\[', right: '\\]', display: true },
+          { left: '\\(', right: '\\)', display: false },
+        ],
+        throwOnError: false,
+      });
+    } else {
+      el.textContent = texto;
+    }
     mensagensEl.appendChild(el);
     mensagensEl.scrollTop = mensagensEl.scrollHeight;
   }
