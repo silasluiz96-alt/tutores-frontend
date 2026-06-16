@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Admin — Tutores</title>
+  <link rel="stylesheet" href="../public/style.css" />
+  <style>
+    .container { max-width: 860px; margin: 0 auto; padding: 32px 16px; }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: var(--neon); text-shadow: 0 0 12px var(--neon-glow); }
+    h2 { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 16px; color: var(--text-head); }
+    .tutor-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .tutor-titulo { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text-head); }
+    .tutor-desc   { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+    #lista-tutores .vazio { color: var(--text-dim); font-style: italic; font-size: 14px; }
+    .erro { color: var(--danger); font-size: 13px; margin-top: 8px; }
+    .fonte-extra-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .fonte-extra-row input { flex: 1; }
+    .btn-remove-fonte {
+      background: transparent;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      border-radius: 6px;
+      padding: 0 10px;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      transition: box-shadow .2s;
+    }
+    .btn-remove-fonte:hover { box-shadow: 0 0 10px rgba(255,45,107,.4); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🎓 Painel de Tutores</h1>
+
+  <!-- Formulário de criação -->
+  <div class="card">
+    <h2>Novo Tutor</h2>
+    <form id="form-tutor">
+      <div class="form-group">
+        <label for="titulo">Título</label>
+        <input id="titulo" type="text" placeholder="Ex: Tutor de Python" required />
+      </div>
+      <div class="form-group">
+        <label for="descricao">Descrição curta</label>
+        <input id="descricao" type="text" placeholder="Ex: Ensina Python do zero" required />
+      </div>
+      <div class="form-group">
+        <label for="instrucoes">Instruções do tutor</label>
+        <textarea id="instrucoes" rows="4" placeholder="Ex: Responda sempre em português, use exemplos simples e seja paciente." required></textarea>
+      </div>
+      <div class="form-group">
+        <label for="fonte-lattes">Currículo Lattes (opcional)</label>
+        <input id="fonte-lattes" type="url" placeholder="https://lattes.cnpq.br/..." />
+      </div>
+      <div class="form-group">
+        <label for="fonte-linkedin">LinkedIn (opcional)</label>
+        <input id="fonte-linkedin" type="url" placeholder="https://linkedin.com/in/..." />
+      </div>
+      <div class="form-group">
+        <label>Site próprio / Plataforma — GitHub, DOI, YouTube (opcional)</label>
+        <div id="fontes-extras">
+          <div class="fonte-extra-row">
+            <input type="url" placeholder="https://github.com/usuario, https://doi.org/10.xxxx/..." />
+          </div>
+        </div>
+        <button type="button" class="btn btn-ghost" id="btn-add-fonte" style="margin-top:8px;font-size:13px;padding:5px 12px;">+ Adicionar outra fonte</button>
+      </div>
+      <p id="erro-form" class="erro" hidden></p>
+      <button type="submit" class="btn btn-primary">Criar Tutor</button>
+    </form>
+  </div>
+
+  <!-- Lista de tutores -->
+  <div class="card">
+    <h2>Tutores Cadastrados</h2>
+    <div id="lista-tutores"><p class="vazio">Carregando...</p></div>
+  </div>
+
+  <!-- Snippet de embed -->
+  <div class="card" id="card-snippet" hidden>
+    <h2>Snippet de Embed</h2>
+    <p style="font-size:13px;color:#6b7280;">Cole o código abaixo no HTML do seu site para incorporar o chat.</p>
+    <div class="snippet-box" id="snippet-codigo"></div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn btn-ghost" onclick="copiarSnippet()">Copiar</button>
+      <button class="btn btn-ghost" onclick="fecharSnippet()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = (localStorage.getItem('backendUrl') || 'http://localhost:8000') + '/api/v1';
+  const API_KEY = localStorage.getItem('adminApiKey') || prompt('Informe sua Admin API Key:') || '';
+  if (API_KEY) localStorage.setItem('adminApiKey', API_KEY);
+
+  const headers = { 'Content-Type': 'application/json', 'x-api-key': API_KEY };
+
+  async function carregarTutores() {
+    const lista = document.getElementById('lista-tutores');
+    try {
+      const res = await fetch(`${API}/tutores/`, { headers });
+      if (!res.ok) throw new Error(`Erro ${res.status}`);
+      const tutores = await res.json();
+
+      if (!tutores.length) {
+        lista.innerHTML = '<p class="vazio">Nenhum tutor cadastrado ainda.</p>';
+        return;
+      }
+
+      lista.innerHTML = tutores.map(t => `
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div class="tutor-titulo">${t.titulo}</div>
+              <div class="tutor-desc">${t.descricao}</div>
+              <span class="badge ${t.ativo ? 'badge-ativo' : 'badge-inativo'}">${t.ativo ? 'Ativo' : 'Inativo'}</span>
+            </div>
+          </div>
+          <div class="tutor-actions">
+            <button class="btn btn-ghost" onclick="gerarSnippet(${t.id}, '${t.titulo}')">Gerar Embed</button>
+            ${t.ativo ? `<button class="btn btn-danger" onclick="desativarTutor(${t.id})">Desativar</button>` : ''}
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      lista.innerHTML = `<p class="erro">Erro ao carregar tutores: ${e.message}</p>`;
+    }
+  }
+
+  document.getElementById('form-tutor').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const erro = document.getElementById('erro-form');
+    erro.hidden = true;
+
+    const extrasInputs = document.querySelectorAll('#fontes-extras input');
+    const fontes = [
+      document.getElementById('fonte-lattes').value,
+      document.getElementById('fonte-linkedin').value,
+      ...[...extrasInputs].map(i => i.value),
+    ].filter(Boolean).join(',') || null;
+
+    const body = {
+      titulo: document.getElementById('titulo').value,
+      descricao: document.getElementById('descricao').value,
+      instrucoes: document.getElementById('instrucoes').value,
+      fontes,
+    };
+
+    try {
+      const res = await fetch(`${API}/tutores/`, { method: 'POST', headers, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error(`Erro ${res.status}`);
+      e.target.reset();
+      await carregarTutores();
+    } catch (err) {
+      erro.textContent = `Não foi possível criar o tutor: ${err.message}`;
+      erro.hidden = false;
+    }
+  });
+
+  async function desativarTutor(id) {
+    if (!confirm('Desativar este tutor?')) return;
+    await fetch(`${API}/tutores/${id}`, { method: 'DELETE', headers });
+    await carregarTutores();
+  }
+
+  const WIDGET_BASE = window.location.origin.includes('localhost')
+    ? 'http://localhost:5500/widget/index.html'
+    : window.location.origin + '/widget/index.html';
+
+  function gerarSnippet(id, titulo) {
+    const url = `${WIDGET_BASE}?tutor_id=${id}&tutor_nome=${encodeURIComponent(titulo)}`;
+    const iframe = `<iframe\n  src="${url}"\n  width="400"\n  height="600"\n  frameborder="0"\n  title="Chat — ${titulo}"\n  allow="clipboard-write">\n</iframe>`;
+    document.getElementById('snippet-codigo').textContent = iframe;
+    document.getElementById('card-snippet').hidden = false;
+    document.getElementById('card-snippet').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function copiarSnippet() {
+    const texto = document.getElementById('snippet-codigo').textContent;
+    navigator.clipboard.writeText(texto).then(() => alert('Copiado!'));
+  }
+
+  function fecharSnippet() {
+    document.getElementById('card-snippet').hidden = true;
+  }
+
+  // Botão "+" — adiciona nova linha de fonte
+  document.getElementById('btn-add-fonte').addEventListener('click', () => {
+    const container = document.getElementById('fontes-extras');
+    const row = document.createElement('div');
+    row.className = 'fonte-extra-row';
+    row.innerHTML = `
+      <input type="url" placeholder="https://..." />
+      <button type="button" class="btn-remove-fonte" title="Remover">×</button>
+    `;
+    row.querySelector('.btn-remove-fonte').addEventListener('click', () => row.remove());
+    container.appendChild(row);
+  });
+
+  carregarTutores();
+</script>
+</body>
+</html>
