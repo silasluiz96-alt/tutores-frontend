@@ -122,6 +122,12 @@ Tema **Cyber Dark** definido em variáveis CSS:
 
 ---
 
+## Qualidade e linter
+
+O frontend é composto por HTML, CSS e JavaScript puro — sem etapa de build, sem bundler e sem dependências de pacotes. Por isso, não há linter de build configurado (ferramentas como ESLint exigem Node.js e npm, o que contraria a premissa do projeto de rodar direto no navegador). A qualidade é garantida pelos testes do backend e pela revisão manual do código via Pull Request.
+
+---
+
 ## Limitações do MVP
 
 - A API Key do admin é salva em `localStorage` — sem criptografia local
