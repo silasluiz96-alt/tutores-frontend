@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat — Tutor</title>
+  <link rel="stylesheet" href="../public/style.css" />
+</head>
+<body>
+<div class="chat-container">
+  <div class="chat-header" id="chat-header">Carregando tutor...</div>
+
+  <div class="chat-messages" id="chat-messages">
+    <p class="msg msg-sistema">Conectando ao tutor...</p>
+  </div>
+
+  <div class="chat-input-area">
+    <input
+      id="input-mensagem"
+      type="text"
+      placeholder="Digite sua mensagem..."
+      disabled
+      autocomplete="off"
+    />
+    <button id="btn-enviar" onclick="enviarMensagem()" disabled>Enviar</button>
+  </div>
+</div>
+
+<script>
+  const params     = new URLSearchParams(window.location.search);
+  const tutorId    = params.get('tutor_id');
+  const tutorNome  = params.get('tutor_nome') || `Tutor #${tutorId}`;
+  const sessaoId   = params.get('sessao_id') || 'sessao-' + Math.random().toString(36).slice(2, 10);
+  const API        = (params.get('backend_url') || 'http://localhost:8000') + '/api/v1';
+
+  const mensagensEl = document.getElementById('chat-messages');
+  const inputEl     = document.getElementById('input-mensagem');
+  const btnEnviar   = document.getElementById('btn-enviar');
+  const headerEl    = document.getElementById('chat-header');
+
+  function adicionarMensagem(texto, tipo) {
+    const el = document.createElement('p');
+    el.className = `msg msg-${tipo}`;
+    el.textContent = texto;
+    mensagensEl.appendChild(el);
+    mensagensEl.scrollTop = mensagensEl.scrollHeight;
+  }
+
+  function setCarregando(ativo) {
+    inputEl.disabled  = ativo;
+    btnEnviar.disabled = ativo;
+    btnEnviar.textContent = ativo ? '...' : 'Enviar';
+  }
+
+  async function inicializar() {
+    if (!tutorId) {
+      headerEl.textContent = 'Erro';
+      mensagensEl.innerHTML = '<p class="msg msg-sistema">Parâmetro tutor_id não informado na URL.</p>';
+      return;
+    }
+
+    try {
+      // Busca nome do tutor para exibir no header
+      // Usa o endpoint público de chat para não expor a API Key no front
+      headerEl.textContent = tutorNome;
+      mensagensEl.innerHTML = '';
+      adicionarMensagem(`Olá! Sou ${tutorNome}. Como posso te ajudar?`, 'assistente');
+      setCarregando(false);
+
+      inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) enviarMensagem();
+      });
+    } catch (e) {
+      headerEl.textContent = 'Erro';
+      adicionarMensagem('Não foi possível conectar ao tutor.', 'sistema');
+    }
+  }
+
+  async function enviarMensagem() {
+    const texto = inputEl.value.trim();
+    if (!texto) return;
+
+    adicionarMensagem(texto, 'usuario');
+    inputEl.value = '';
+    setCarregando(true);
+
+    try {
+      const res = await fetch(`${API}/chat/${tutorId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessao_id: sessaoId, mensagem: texto }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Erro ${res.status}`);
+      }
+
+      const dados = await res.json();
+      adicionarMensagem(dados.resposta, 'assistente');
+    } catch (e) {
+      adicionarMensagem(`Erro: ${e.message}`, 'sistema');
+    } finally {
+      setCarregando(false);
+      inputEl.focus();
+    }
+  }
+
+  inicializar();
+</script>
+</body>
+</html>
