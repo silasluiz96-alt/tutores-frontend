@@ -131,7 +131,6 @@ O frontend é composto por HTML, CSS e JavaScript puro — sem etapa de build, s
 ## Limitações do MVP
 
 - A API Key do admin é salva em `localStorage` — sem criptografia local
-- O widget não renderiza Markdown nas respostas (texto simples)
 - Sem histórico visual de sessões anteriores para o usuário final
 - O snippet gerado aponta para `localhost` — em produção é necessário substituir pela URL real
 
@@ -141,12 +140,20 @@ O frontend é composto por HTML, CSS e JavaScript puro — sem etapa de build, s
 
 - Hospedar o frontend em CDN (ex: Vercel, Netlify, Cloudflare Pages)
 - Substituir `localStorage` da API Key por autenticação JWT com sessão segura
-- Suporte a Markdown nas respostas do tutor (ex: `marked.js`)
 - Streaming de respostas para feedback visual imediato
 - Customização visual do widget por tutor (cores, logo, posição)
 - Aviso obrigatório de IA na interface do chat (conformidade LGPD)
 
 ---
 
+## Evidências de teste
+
+Relatório técnico completo com capturas de tela de cada cenário testado (backend, frontend, autenticação, criação de tutor, embed e chat com IA):
+
+📄 [Evidencias_Tutores_DOT.pdf](https://github.com/silasluiz96-alt/tutores-backend/blob/main/docs/Evidencias_Tutores_DOT.pdf)
+
+---
+
 *Desafio técnico DOT Digital Group — Plataforma de Tutores Personalizados*
+*Candidato: **Silas Luiz Bom Fim***
 *Código produzido com auxílio de agentes de codificação (Claude Code — Anthropic)*
